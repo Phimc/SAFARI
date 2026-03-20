@@ -27,13 +27,13 @@ n = 1000;                       % wavefront dimension
 % Wavefront generation (uncomment the corresponding block)
 % =========================================================================
 
-% speckle fields
-rng(0)                          % random seed, for reproducibility
-grain_size = 8;                 % speckle grain size (pixel)
-m = round(n/grain_size);        % number of speckles in one dimension
-m = round((m+1)/2)*2;           % make m an even number
-u = exp(1i*rand(m,m)*2*pi);     % random phase uniformly sampled in [0,2pi)
-wavefront = fftshift(fft2(fftshift(zeropad(u,(n-m)/2)))); % fft to obtain speckles
+% % speckle fields
+% rng(0)                          % random seed, for reproducibility
+% grain_size = 8;                 % speckle grain size (pixel)
+% m = round(n/grain_size);        % number of speckles in one dimension
+% m = round((m+1)/2)*2;           % make m an even number
+% u = exp(1i*rand(m,m)*2*pi);     % random phase uniformly sampled in [0,2pi)
+% wavefront = fftshift(fft2(fftshift(zeropad(u,(n-m)/2)))); % fft to obtain speckles
 
 % % Laguerre Gaussian beams
 % [X,Y] = meshgrid((-n/2:n/2-1)*params.pxsize);   % define 2D coordinate (mm)
@@ -127,7 +127,7 @@ wavefront = fftshift(fft2(fftshift(zeropad(u,(n-m)/2)))); % fft to obtain speckl
 % Dz = 2e5;       % propagation distance (m)
 % wavefront = genTurbulence(n,n_screen,D1,D2,Dz,params.wavlen*1e-3);
 
-% % amplitude pattern
+% amplitude pattern
 % img = im2double(imread('data/thulogo.bmp'));
 % img = imresize(img,[n/2,n/2]);
 % img = padarray(1-img,[n/4,n/4],0);
@@ -135,13 +135,13 @@ wavefront = fftshift(fft2(fftshift(zeropad(u,(n-m)/2)))); % fft to obtain speckl
 % pha = zeros(n,n);
 % wavefront = amp.*exp(1i*pha);
 
-% % phase pattern
-% img = im2double(imread('data/cityulogo.bmp'));
-% img = imresize(img,[n/2,n/2]);
-% img = padarray(1-img,[n/4,n/4],0);
-% amp = ones(n,n);
-% pha = img*pi;
-% wavefront = amp.*exp(1i*pha);
+% phase pattern
+img = im2double(imread('data/cityulogo.bmp'));
+img = imresize(img,[n/2,n/2]);
+img = padarray(1-img,[n/4,n/4],0);
+amp = ones(n,n);
+pha = img*pi;
+wavefront = amp.*exp(1i*pha);
 
 % % prism
 % [X,Y] = meshgrid((-n/2:n/2-1)*params.pxsize);   % define 2D coordinate (mm)
@@ -184,10 +184,18 @@ cropsize = 50;          % image cropping size
 rng(0)
 diff_feat_size = 5;
 diffuser = imresize(rand(floor(n/diff_feat_size),floor(n/diff_feat_size)),[n,n],'nearest');
-index_1 = diffuser <  0.5;
-index_2 = diffuser >= 0.5;
-diffuser(index_1) = exp(1i*0);
-diffuser(index_2) = exp(1i*pi);
+
+for i = 1:n
+    for j = 1:n
+        diffuser(i,j) = exp(diffuser(i,j)*1i*pi);
+    end
+end
+% index_1 = diffuser <  0.5;
+% index_2 = diffuser >= 0.5;
+% diffuser(index_1) = exp(1i*0);
+% diffuser(index_2) = exp(1i*pi);
+
+imshow(diffuser);
 
 % calculate the transfer function for diffraction modeling
 HQ = fftshift(transfunc_propagate(n,n, params.dist,params.pxsize,params.wavlen)); % forward propagation
