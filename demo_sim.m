@@ -185,15 +185,16 @@ rng(0)
 diff_feat_size = 5;
 diffuser = imresize(rand(floor(n/diff_feat_size),floor(n/diff_feat_size)),[n,n],'nearest');
 
-for i = 1:n
-    for j = 1:n
-        diffuser(i,j) = exp(diffuser(i,j)*1i*pi);
-    end
-end
-% index_1 = diffuser <  0.5;
-% index_2 = diffuser >= 0.5;
-% diffuser(index_1) = exp(1i*0);
-% diffuser(index_2) = exp(1i*pi);
+% for i = 1:n
+%     for j = 1:n
+%         diffuser(i,j) = exp(diffuser(i,j)*1i*pi);
+%     end
+% end
+
+index_1 = diffuser <  0.5;
+index_2 = diffuser >= 0.5;
+diffuser(index_1) = exp(1i*0);
+diffuser(index_2) = exp(1i*pi);
 
 imshow(diffuser);
 
