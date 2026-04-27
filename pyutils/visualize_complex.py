@@ -34,57 +34,62 @@ def visualize_complex(cimg, cmap, amp_range, mode='hsv', reverse=False):
     b = 1
     ncmap = len(cmap)
     
-    # Create image
-    img = np.zeros((cimg.shape[0], cimg.shape[1], 3))
+    # Vectorized color index calculation
+    cmap_idx = np.round((ncmap - 1) / (2 * np.pi) * (pha + np.pi)).astype(int)
+    cmap_idx = np.clip(cmap_idx, 0, ncmap - 1)
     
-    for i in range(cimg.shape[0]):
-        for j in range(cimg.shape[1]):
-            a = amp_norm[i, j]
-            if reverse:
-                a = 1 - a
-            
-            cmap_idx = int(round((ncmap - 1) / (2 * np.pi) * (pha[i, j] + np.pi)))
-            cmap_idx = np.clip(cmap_idx, 0, ncmap - 1)
-            color = cmap[cmap_idx]
-            
-            if mode.lower() == 'hsv':
-                img[i, j, :] = color * a
-            elif mode.lower() == 'hsl':
-                if a > 1/2:
-                    w = (2 * (a - 1/2))**b
-                    img[i, j, :] = color * (1 - w) + np.array([1, 1, 1]) * w
-                else:
-                    w = (2 * (1/2 - a))**b
-                    img[i, j, :] = color * (1 - w) + np.array([0, 0, 0]) * w
+    # Get colors for all pixels
+    colors = cmap[cmap_idx]  # shape: (H, W, 3)
+    
+    a = amp_norm.copy()
+    if reverse:
+        a = 1 - a
+    
+    if mode.lower() == 'hsv':
+        img = colors * a[..., None]
+    elif mode.lower() == 'hsl':
+        img = np.zeros_like(colors)
+        mask_high = a > 0.5
+        w_high = (2 * (a - 0.5))**b
+        w_low = (2 * (0.5 - a))**b
+        
+        for c in range(3):
+            img[..., c] = np.where(
+                mask_high,
+                colors[..., c] * (1 - w_high) + w_high,
+                colors[..., c] * (1 - w_low) + 0
+            )
     
     # Create colorbar
     n = 256
-    cbarimg = np.full((n, n, 3), np.nan)
     x = np.linspace(-1, 1, n)
-    y = x
-    X, Y = np.meshgrid(x, y)
-    theta = np.arctan2(Y, X)
-    rho = np.sqrt(X**2 + Y**2)
+    X_cb, Y_cb = np.meshgrid(x, x)
+    theta_cb = np.arctan2(Y_cb, X_cb)
+    rho_cb = np.sqrt(X_cb**2 + Y_cb**2)
     
-    for i in range(n):
-        for j in range(n):
-            if rho[i, j] <= 1:
-                a = rho[i, j]
-                if reverse:
-                    a = 1 - a
-                
-                cmap_idx = int(round((ncmap - 1) / (2 * np.pi) * (theta[i, j] + np.pi)))
-                cmap_idx = np.clip(cmap_idx, 0, ncmap - 1)
-                color = cmap[cmap_idx]
-                
-                if mode.lower() == 'hsv':
-                    cbarimg[i, j, :] = color * a
-                elif mode.lower() == 'hsl':
-                    if a > 1/2:
-                        w = (2 * (a - 1/2))**b
-                        cbarimg[i, j, :] = color * (1 - w) + np.array([1, 1, 1]) * w
-                    else:
-                        w = (2 * (1/2 - a))**b
-                        cbarimg[i, j, :] = color * (1 - w) + np.array([0, 0, 0]) * w
+    mask = rho_cb <= 1
+    cbarimg = np.full((n, n, 3), np.nan)
+    
+    cmap_idx_cb = np.round((ncmap - 1) / (2 * np.pi) * (theta_cb + np.pi)).astype(int)
+    cmap_idx_cb = np.clip(cmap_idx_cb, 0, ncmap - 1)
+    colors_cb = cmap[cmap_idx_cb]
+    
+    a_cb = rho_cb.copy()
+    if reverse:
+        a_cb = 1 - a_cb
+    
+    if mode.lower() == 'hsv':
+        cbarimg[mask] = (colors_cb * a_cb[..., None])[mask]
+    elif mode.lower() == 'hsl':
+        mask_high = mask & (a_cb > 0.5)
+        mask_low = mask & (a_cb <= 0.5)
+        w_high = (2 * (a_cb - 0.5))**b
+        w_low = (2 * (0.5 - a_cb))**b
+        for c in range(3):
+            cbarimg[..., c] = np.where(
+                mask_high,
+                colors_cb[..., c] * (1 - w_high) + w_high,
+                np.where(mask_low, colors_cb[..., c] * (1 - w_low) + 0, np.nan)
+            )
     
     return img, cbarimg
